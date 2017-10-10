@@ -1,4 +1,6 @@
 # Run static analyze tool over source code
+require "tmpdir"
+
 class Analyze
   attr_reader :app, :output, :output_format
 
@@ -25,19 +27,22 @@ class Analyze
 
   def brakeman
     puts 'Installing Rails scan tool (brakeman)'
-    cmd('gem install brakeman')
 
     Dir.chdir(@app.path) do
-      cmd("brakeman -w3 -o /tmp/gl-brakeman.json")
-    end
+      Dir.mktmpdir do |dir|
+        if cmd("gem install --install-dir #{dir}/brakeman brakeman")
+          if cmd("#{dir}/brakeman/bin/brakeman -w3 -o #{dir}/brakeman.json")
 
-    @output_format = :brakeman
-    @output = File.read('/tmp/gl-brakeman.json')
+            @output_format = :brakeman
+            @output = File.read("#{dir}/brakeman.json")
+          end
+        end
+      end
+    end
   end
 
   def cmd(cmd)
-    # Use `` execution for now for easier debug
     puts ' - ' + cmd
-    `#{cmd}`
+    system(cmd)
   end
 end

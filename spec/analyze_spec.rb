@@ -5,7 +5,12 @@ RSpec.describe Analyze do
   before { ensure_test_repo }
 
   let(:app) { double(language: :ruby, framework: :rails, path: tmp_app_path) }
-  let(:result) { Analyze.new(app) }
+
+  let(:result) do
+    Bundler.with_clean_env do
+      Analyze.new(app)
+    end
+  end
 
   it { expect(result.output_format).to eq(:brakeman) }
 end
