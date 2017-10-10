@@ -8,7 +8,11 @@ class Report
   end
 
   def build_report
-    @result.output
+    case @result.output_format
+    when 1
+    else
+      raise "Report parsing for #{@result.output_format} is not supported"
+    end
   end
 
   def save_as(target_path)

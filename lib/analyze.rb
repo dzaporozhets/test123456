@@ -1,6 +1,6 @@
 # Run static analyze tool over source code
 class Analyze
-  attr_reader :app, :output
+  attr_reader :app, :output, :output_format
 
   def initialize(app)
     @app = app
@@ -31,6 +31,7 @@ class Analyze
       cmd("brakeman -w3 -o /tmp/gl-brakeman.json")
     end
 
+    @output_format = :brakeman
     @output = File.read('/tmp/gl-brakeman.json')
   end
 
