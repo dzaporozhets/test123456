@@ -1,5 +1,6 @@
 # Run static analyze tool over source code
 require "tmpdir"
+require 'json'
 
 class Analyze
   attr_reader :app, :output, :output_format
@@ -30,12 +31,10 @@ class Analyze
 
     Dir.chdir(@app.path) do
       Dir.mktmpdir do |dir|
-        if cmd("gem install --install-dir #{dir}/brakeman brakeman")
-          if cmd("#{dir}/brakeman/bin/brakeman -w3 -o #{dir}/brakeman.json")
-
-            @output_format = :brakeman
-            @output = File.read("#{dir}/brakeman.json")
-          end
+        if cmd("gem install brakeman")
+          cmd("brakeman -w3 -o #{dir}/brakeman.json")
+          @output_format = :brakeman
+          @output = JSON.parse(File.read("#{dir}/brakeman.json"))
         end
       end
     end
