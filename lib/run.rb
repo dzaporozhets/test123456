@@ -7,6 +7,6 @@ class Run
     app = Detect.new(path)
     result = Analyze.new(app)
     report = Report.new(result)
-    report.save_as('/tmp/gl-sast-report.json')
+    report.save_as(File.join(path, 'gl-sast-report.json'))
   end
 end
