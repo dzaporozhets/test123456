@@ -1,47 +1,36 @@
 # Run static analyze tool over source code
-require "tmpdir"
-require 'json'
+require_relative 'analyzers/brakeman'
+require_relative 'analyzers/bundle_audit'
 
 class Analyze
-  attr_reader :app, :output, :output_format
+  attr_reader :app, :issues
 
   def initialize(app)
     @app = app
+  end
+
+  def issues
+    issues = []
 
     case app.language
     when :ruby
+      issues += Analyzers::BundleAudit.new(app).execute
+
       case app.framework
       when :rails
-        brakeman
+        issues += Analyzers::Brakeman.new(app).execute
       else
         not_supported
       end
     else
       not_supported
     end
+
+    issues
   end
 
   def not_supported
     puts 'Source code language/framework is not yet supported for analyze'
     exit 1
-  end
-
-  def brakeman
-    puts 'Installing Rails scan tool (brakeman)'
-
-    Dir.chdir(@app.path) do
-      Dir.mktmpdir do |dir|
-        if cmd("gem install brakeman")
-          cmd("brakeman -w3 -o #{dir}/brakeman.json")
-          @output_format = :brakeman
-          @output = JSON.parse(File.read("#{dir}/brakeman.json"))
-        end
-      end
-    end
-  end
-
-  def cmd(cmd)
-    puts ' - ' + cmd
-    system(cmd)
   end
 end

@@ -1,10 +1,10 @@
-require_relative '../lib/detect'
+require_relative '../lib/app'
 require 'spec_helper'
 
-RSpec.describe Detect do
+RSpec.describe App do
   before { ensure_test_repo }
 
-  let(:app) { Detect.new(tmp_app_path) }
+  let(:app) { App.new(tmp_app_path) }
 
   it { expect(app.language).to eq(:ruby) }
   it { expect(app.framework).to eq(:rails) }
