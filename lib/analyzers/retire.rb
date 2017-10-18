@@ -1,6 +1,9 @@
+require 'json'
+require "tmpdir"
+
 require_relative 'helpers'
 require_relative '../issue'
-require 'pry'
+
 module Analyzers
   class Retire
     include Analyzers::Helpers
@@ -10,6 +13,8 @@ module Analyzers
     end
 
     def execute
+      prepare
+
       output = nil
 
       Dir.chdir(@app.path) do
@@ -52,6 +57,16 @@ module Analyzers
       end
 
       issues
+    end
+
+    def prepare
+      Dir.mktmpdir do |dir|
+        cmd('git clone https://github.com/heroku/heroku-buildpack-nodejs ' + dir)
+
+        unless cmd("#{dir}/bin/compile #{@app.path}")
+          exit 1
+        end
+      end
     end
   end
 end
