@@ -6,11 +6,15 @@ RSpec.describe Analyze do
 
   let(:app) { double(language: :ruby, framework: :rails, path: tmp_app_path) }
 
-  let(:result) do
+  let(:issues) do
     Bundler.with_clean_env do
-      Analyze.new(app)
+      Analyze.new(app).issues
     end
   end
 
-  it { expect(result.output_format).to eq(:brakeman) }
+  let(:issue) { issues.first }
+
+  it { expect(issues.size).to eq(1) }
+  it { expect(issue.tool).to eq(:brakeman) }
+  it { expect(issue.message).to eq('Possible command injection') }
 end

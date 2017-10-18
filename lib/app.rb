@@ -1,5 +1,4 @@
-# Detect application and framework
-class Detect
+class App
   attr_reader :language, :framework, :path
 
   def initialize(path)
