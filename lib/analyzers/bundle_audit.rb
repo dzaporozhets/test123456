@@ -14,7 +14,9 @@ module Analyzers
 
       Dir.chdir(@app.path) do
         if cmd("gem install bundler-audit")
+          puts ' - bundle audit'
           result = parse_output(`bundle audit`)
+          puts result
           result.map do |item|
             issue = Issue.new
             issue.tool = :bundler_audit
