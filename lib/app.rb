@@ -12,6 +12,8 @@ class App
       if content.include?('rails')
         @framework = :rails
       end
+    elsif entries.include?('package.json')
+      @language = :js
     end
   end
 end
