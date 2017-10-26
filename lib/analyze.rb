@@ -1,8 +1,8 @@
-# Run static analyze tool over source code
 require_relative 'analyzers/brakeman'
 require_relative 'analyzers/bundle_audit'
 require_relative 'analyzers/retire'
 
+# Run static analyze tool over source code
 class Analyze
   attr_reader :app, :issues
 
@@ -20,8 +20,6 @@ class Analyze
       case app.framework
       when :rails
         issues += Analyzers::Brakeman.new(app).execute
-      else
-        not_supported
       end
     when :js
       issues += Analyzers::Retire.new(app).execute
@@ -29,8 +27,10 @@ class Analyze
       not_supported
     end
 
-    issues
+    issues.compact
   end
+
+  private
 
   def not_supported
     puts 'Source code language/framework is not yet supported for analyze'

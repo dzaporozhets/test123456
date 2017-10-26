@@ -2,58 +2,77 @@ require_relative 'helpers'
 require_relative '../issue'
 
 module Analyzers
+  # Language: Ruby
+  # Framework: Any
+  # Patch-level verification for Bundler.
+  # - Checks for vulnerable versions of gems in Gemfile.lock.
+  # - Checks for insecure gem sources (http://).
   class BundleAudit
     include Analyzers::Helpers
 
+    REPORT_NAME = 'gl-sast-bundle-audit.json'.freeze
+
+    attr_reader :app, :report_path
+
     def initialize(app)
       @app = app
+      @report_path = File.join(@app.path, REPORT_NAME)
     end
 
     def execute
-      puts 'Installing Ruby dependency scan tool (bundler-audit)'
+      output = analyze
+      output_to_issues(output)
+    end
 
+    private
+
+    def analyze
       Dir.chdir(@app.path) do
-        if cmd("gem install bundler-audit")
-          puts ' - bundle audit'
-          result = parse_output(`bundle audit`)
-          puts result
-          result.map do |item|
-            issue = Issue.new
-            issue.tool = :bundler_audit
-            issue.message = item[:message]
-            issue.url = item[:url]
-            issue.cve = item[:cve]
-            issue.file = 'Gemfile.lock'
-            issue.solution = item[:solution]
-            issue
-          end
-        else
-          []
-        end
+        cmd <<-SH
+          gem install bundler-audit
+          bundle audit > #{report_path}
+        SH
+
+        parse_output(File.read(report_path))
       end
+    ensure
+      File.delete(report_path) if File.exist?(report_path)
     end
 
     def parse_output(output)
       output.split(/\n\n/).map do |record|
-        if record.start_with?('Name: ')
-          lines = record.split(/\n/)
-          item = {}
+        next unless record.start_with?('Name: ')
 
-          lines.each do |line|
-            if line.start_with?('Title: ')
-              item[:message] = line.sub('Title: ', '')
-            elsif line.start_with?('Advisory: ')
-              item[:cve] = line.sub('Advisory: ', '')
-            elsif line.start_with?('Solution: ')
-              item[:solution] = line.sub('Solution: ', '')
-            elsif line.start_with?('URL: ')
-              item[:url] = line.sub('URL: ', '')
-            end
+        lines = record.split(/\n/)
+        result = {}
+
+        lines.each do |line|
+          if line.start_with?('Title: ')
+            result[:message] = line.sub('Title: ', '')
+          elsif line.start_with?('Advisory: ')
+            result[:cve] = line.sub('Advisory: ', '')
+          elsif line.start_with?('Solution: ')
+            result[:solution] = line.sub('Solution: ', '')
+          elsif line.start_with?('URL: ')
+            result[:url] = line.sub('URL: ', '')
           end
-
-          item
         end
+
+        result
       end.compact
+    end
+
+    def output_to_issues(output)
+      output.map do |result|
+        issue = Issue.new
+        issue.tool = :bundler_audit
+        issue.message = result[:message]
+        issue.url = result[:url]
+        issue.cve = result[:cve]
+        issue.file = 'Gemfile.lock'
+        issue.solution = result[:solution]
+        issue
+      end
     end
   end
 end

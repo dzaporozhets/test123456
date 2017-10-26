@@ -1,27 +1,35 @@
 require 'json'
-require "tmpdir"
+require 'tmpdir'
 
 require_relative 'helpers'
 require_relative '../issue'
 
 module Analyzers
+  # Language: JavaScript
+  # Framework: Any
+  # Detecting the use of JavaScript libraries with known vulnerabilities
   class Retire
     include Analyzers::Helpers
 
-    BUILDPACK_URL = 'https://github.com/heroku/heroku-buildpack-nodejs'
+    BUILDPACK_URL = 'https://github.com/heroku/heroku-buildpack-nodejs'.freeze
+    REPORT_NAME = 'gl-sast-retire.json'.freeze
 
     attr_reader :app, :report_path
 
     def initialize(app)
       @app = app
-      @report_path = File.join(@app.path, 'retire-result.json')
+      @report_path = File.join(@app.path, REPORT_NAME)
     end
 
     def execute
-      prepare
+      install_buildpack
+      output = analyze
+      output_to_issues(output)
+    end
 
-      output = nil
+    private
 
+    def analyze
       Dir.chdir(@app.path) do
         cmd <<-SH
           export NODE_HOME="#{@app.path}/.heroku/node"
@@ -30,11 +38,13 @@ module Analyzers
           retire --outputformat json --outputpath #{report_path}
         SH
 
-        output = JSON.parse(File.read(report_path))
-
-        raise 'Retire.js scan failed' if output.empty?
+        JSON.parse(File.read(report_path))
       end
+    ensure
+      File.delete(report_path) if File.exist?(report_path)
+    end
 
+    def output_to_issues(output)
       issues = []
 
       output.each do |record|
@@ -42,27 +52,24 @@ module Analyzers
 
         record['results'].each do |result|
           puts ' x ' + result.inspect
-          if result['vulnerabilities']
-            result['vulnerabilities'].each do |vulnerability|
-              issue = Issue.new
-              issue.tool = :retire
-              issue.url = vulnerability['info'].first
 
-              if filename
-                issue.file = filename
-              end
+          next unless result['vulnerabilities']
 
-              issue.priority = vulnerability['severity']
+          result['vulnerabilities'].each do |vulnerability|
+            issue = Issue.new
+            issue.tool = :retire
+            issue.url = vulnerability['info'].first
+            issue.file = filename if filename
+            issue.priority = vulnerability['severity']
 
-              if identifiers = vulnerability['identifiers']
-                if identifiers['CVE']
-                  issue.cve = identifiers['CVE'].first
-                end
-                issue.message = identifiers['summary']
-              end
+            identifiers = vulnerability['identifiers']
 
-              issues << issue
+            if identifiers
+              issue.cve = identifiers['CVE'].first if identifiers['CVE']
+              issue.message = identifiers['summary']
             end
+
+            issues << issue
           end
         end
       end
@@ -70,13 +77,12 @@ module Analyzers
       issues
     end
 
-    def prepare
+    def install_buildpack
       Dir.mktmpdir do |dir|
-        unless cmd("git clone #{BUILDPACK_URL} #{dir}") &&
-            cmd("#{dir}/bin/test-compile #{@app.path}")
-          puts 'Failed to prepare environment'
-          exit 1
-        end
+        cmd <<-SH
+          git clone #{BUILDPACK_URL} #{dir}
+          #{dir}/bin/test-compile #{@app.path}
+        SH
       end
     end
   end

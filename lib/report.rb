@@ -1,5 +1,6 @@
 require 'json'
 
+# Dump issues to json and save as file
 class Report
   attr_reader :issues
 
