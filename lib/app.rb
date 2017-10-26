@@ -2,7 +2,7 @@ class App
   attr_reader :language, :framework, :path
 
   def initialize(path)
-    @path = path
+    @path = File.expand_path(path)
     entries = Dir.entries(path)
 
     if entries.include?('Gemfile')
