@@ -2,6 +2,7 @@ require_relative 'app'
 require_relative 'analyze'
 require_relative 'report'
 
+# Detect application and analyze
 class Run
   def initialize(path)
     app = App.new(path)

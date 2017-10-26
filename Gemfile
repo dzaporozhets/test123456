@@ -1,8 +1,8 @@
 # frozen_string_literal: true
-source "https://rubygems.org"
+source 'https://rubygems.org'
 
 group :test, :development do
-  gem "rspec"
-  gem "pry"
-  gem "rubocop"
+  gem 'pry'
+  gem 'rspec'
+  gem 'rubocop'
 end

@@ -1,3 +1,4 @@
+# rubocop:disable StringLiterals
 require_relative 'helpers'
 
 RSpec.configure do |config|
