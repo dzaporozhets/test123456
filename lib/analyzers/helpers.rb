@@ -1,8 +1,8 @@
 module Analyzers
   module Helpers
-    def cmd(cmd)
+    def cmd(cmd, env={})
       puts ' - ' + cmd
-      system(cmd)
+      system(env, cmd)
     end
   end
 end

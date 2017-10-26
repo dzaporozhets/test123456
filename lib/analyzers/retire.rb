@@ -8,8 +8,13 @@ module Analyzers
   class Retire
     include Analyzers::Helpers
 
+    BUILDPACK_URL = 'https://github.com/heroku/heroku-buildpack-nodejs'
+
+    attr_reader :app, :report_path
+
     def initialize(app)
       @app = app
+      @report_path = File.join(@app.path, 'retire-result.json')
     end
 
     def execute
@@ -18,8 +23,14 @@ module Analyzers
       output = nil
 
       Dir.chdir(@app.path) do
-        cmd('retire --outputformat json --outputpath retire-result.json')
-        output = JSON.parse(File.read(File.join(@app.path, 'retire-result.json')))
+        cmd <<-SH
+          export NODE_HOME="#{@app.path}/.heroku/node"
+          export PATH="#{@app.path}/.heroku/node/bin:#{@app.path}/.heroku/yarn/bin:$PATH:#{@app.path}/bin:#{@app.path}/node_modules/.bin"
+          npm install -g retire
+          retire --outputformat json --outputpath #{report_path}
+        SH
+
+        output = JSON.parse(File.read(report_path))
 
         raise 'Retire.js scan failed' if output.empty?
       end
@@ -61,9 +72,9 @@ module Analyzers
 
     def prepare
       Dir.mktmpdir do |dir|
-        cmd('git clone https://github.com/heroku/heroku-buildpack-nodejs ' + dir)
-
-        unless cmd("#{dir}/bin/compile #{@app.path}")
+        unless cmd("git clone #{BUILDPACK_URL} #{dir}") &&
+            cmd("#{dir}/bin/test-compile #{@app.path}")
+          puts 'Failed to prepare environment'
           exit 1
         end
       end
