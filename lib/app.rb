@@ -7,10 +7,13 @@ class App
 
     if entries.include?('Gemfile')
       @language = :ruby
-      content = File.read(File.join(path, 'Gemfile'))
 
-      if content.include?('rails')
-        @framework = :rails
+      if entries.include?('Gemfile.lock')
+        content = File.read(File.join(path, 'Gemfile.lock'))
+
+        if content.include?(' rails ')
+          @framework = :rails
+        end
       end
     elsif entries.include?('package.json')
       @language = :js
